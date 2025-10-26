@@ -1,80 +1,9 @@
-pipeline {
-    agent {
-        docker {
-            image 'node:18-alpine'
-            args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
-        }
-    }
+version: "3.8"
 
-    environment {
-        DOCKER_IMAGE = 'cc-webapp'
-        DOCKER_TAG = "${BUILD_NUMBER}"
-        CONTAINER_NAME = 'cc-webapp-container'
-        CI = 'true'
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                echo 'Checking out source code...'
-                checkout scm
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                echo 'Installing npm dependencies...'
-                sh 'npm ci --cache /tmp/.npm --no-optional'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                echo 'Running tests...'
-                sh 'npm run test:ci || true'
-            }
-        }
-
-        stage('Build Application') {
-            steps {
-                echo 'Building React application...'
-                sh 'npm run build'
-                echo 'Build completed successfully!'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                echo 'Testing Docker access...'
-                sh 'docker version'
-                echo 'Building Docker image...'
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
-            }
-        }
-
-        stage('Deploy with Docker Compose') {
-            steps {
-                echo 'Deploying application...'
-                sh "docker-compose down || true"
-                sh "docker-compose up -d --build"
-            }
-        }
-
-        stage('Health Check') {
-            steps {
-                echo 'Performing health check...'
-                sh 'sleep 10'
-                sh 'curl -f http://localhost:3000 --max-time 30'
-                echo 'Health check passed!'
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Cleaning up workspace...'
-            cleanWs()
-        }
-    }
-}
+services:
+  web-app:
+    build: .
+    container_name: simple-web-app
+    ports:
+      - "3000:80"
+    restart: unless-stopped
