@@ -30,16 +30,24 @@ pipeline {
                 echo 'Building application with Docker...'
                 script {
                     try {
+                        // Try direct docker build first
                         sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
                         sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
                         echo "Docker image built successfully: ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     } catch (Exception e) {
-                        echo "Docker build failed: ${e.getMessage()}"
-                        echo "Trying to fix Docker permissions..."
-                        sh 'sudo chmod 666 /var/run/docker.sock || true'
-                        sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                        sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
-                        echo "Docker image built successfully after permission fix: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        echo "Direct Docker build failed: ${e.getMessage()}"
+                        echo "Trying Docker-in-Docker approach..."
+                        
+                        // Use Docker-in-Docker with privileged container
+                        sh """
+                            docker run --rm --privileged \\
+                                -v /var/run/docker.sock:/var/run/docker.sock \\
+                                -v \$(pwd):/workspace \\
+                                -w /workspace \\
+                                docker:20.10-dind \\
+                                sh -c "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} . && docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                        """
+                        echo "Docker image built successfully with Docker-in-Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     }
                 }
             }
