@@ -42,27 +42,17 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
-            agent any
+        stage('Deploy Application') {
             steps {
-                echo 'Building Docker image on host...'
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
-                echo "Docker image built successfully: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-            }
-        }
-        
-        stage('Deploy with Docker Compose') {
-            agent any
-            steps {
-                echo 'Deploying application...'
-                sh "docker-compose down || true"
-                sh "docker-compose up -d --build"
+                echo 'Deploying application with serve...'
+                sh 'npm install -g serve'
+                sh 'pkill -f "serve -s build" || echo "No existing serve process"'
+                sh 'nohup serve -s build -l 3000 > /dev/null 2>&1 &'
+                echo 'Application deployed successfully!'
             }
         }
         
         stage('Health Check') {
-            agent any
             steps {
                 echo 'Performing health check...'
                 sh 'sleep 10'
