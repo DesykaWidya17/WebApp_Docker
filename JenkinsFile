@@ -4,11 +4,12 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'cc-webapp'
         DOCKER_TAG = "${BUILD_NUMBER}"
-        CONTAINER_NAME = 'cc-webapp-container'
+        CONTAINER_NAME = 'simple-web-app'
         CI = 'true'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo '📦 Checking out source code...'
@@ -19,21 +20,30 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo '📥 Installing npm dependencies...'
-                sh '#!/bin/bash -xe\nnpm ci --cache /tmp/.npm --no-optional'
+                sh '''
+                    #!/bin/bash -xe
+                    npm ci --cache /tmp/.npm --no-optional
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
                 echo '🧪 Running tests...'
-                sh '#!/bin/bash -xe\nnpm run test:ci || true'
+                sh '''
+                    #!/bin/bash -xe
+                    npm run test:ci || true
+                '''
             }
         }
 
         stage('Build Application') {
             steps {
                 echo '🏗️ Building React application...'
-                sh '#!/bin/bash -xe\nnpm run build'
+                sh '''
+                    #!/bin/bash -xe
+                    npm run build
+                '''
                 echo '✅ Build completed successfully!'
             }
         }
@@ -41,11 +51,17 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Testing Docker access...'
-                sh '#!/bin/bash -xe\ndocker version'
+                sh '''
+                    #!/bin/bash -xe
+                    docker version
+                '''
 
                 echo '🏗️ Building Docker image on host...'
-                sh '#!/bin/bash -xe\ndocker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
-                sh '#!/bin/bash -xe\ndocker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest'
+                sh '''
+                    #!/bin/bash -xe
+                    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                    docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                '''
                 echo "✅ Docker image built successfully: ${DOCKER_IMAGE}:${DOCKER_TAG}"
             }
         }
@@ -53,8 +69,13 @@ pipeline {
         stage('Deploy with Docker Compose') {
             steps {
                 echo '🚀 Deploying application...'
-                sh '#!/bin/bash -xe\ndocker-compose down || true'
-                sh '#!/bin/bash -xe\ndocker-compose up -d --build'
+                sh '''
+                    #!/bin/bash -xe
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm -f ${CONTAINER_NAME} || true
+                    docker-compose down --remove-orphans || true
+                    docker-compose up -d --build
+                '''
                 echo '✅ Application deployed successfully!'
             }
         }
@@ -62,7 +83,11 @@ pipeline {
         stage('Health Check') {
             steps {
                 echo '🩺 Performing health check...'
-                sh '#!/bin/bash -xe\nsleep 10\ncurl -f http://localhost:3000 --max-time 30'
+                sh '''
+                    #!/bin/bash -xe
+                    sleep 10
+                    curl -f http://localhost:3000 --max-time 30
+                '''
                 echo '✅ Health check passed! Application is running on port 3000'
             }
         }
