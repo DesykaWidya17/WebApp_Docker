@@ -32,15 +32,6 @@ pipeline {
                 echo 'Running tests...'
                 sh 'npm run test:ci'
             }
-            post {
-                always {
-                    script {
-                        if (fileExists('coverage/lcov.info')) {
-                            publishCoverage adapters: [jacocoAdapter('coverage/lcov.info')]
-                        }
-                    }
-                }
-            }
         }
         
         stage('Build Application') {
