@@ -20,6 +20,15 @@ pipeline {
             }
         }
         
+        stage('Setup NPM Cache') {
+            steps {
+                echo 'Setting up npm cache...'
+                sh 'mkdir -p /tmp/.npm'
+                sh 'npm config set cache /tmp/.npm'
+                sh 'npm cache clean --force || echo "Cache clean failed"'
+            }
+        }
+        
         stage('Install Dependencies') {
             steps {
                 echo 'Installing npm dependencies...'
