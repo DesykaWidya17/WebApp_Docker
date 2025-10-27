@@ -6,11 +6,6 @@ pipeline {
         NPM_CONFIG_CACHE = 'C:\\tmp\\.npm'
     }
 
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 60, unit: 'MINUTES')
-    }
-
     stages {
         stage('Checkout SCM') {
             steps {
@@ -23,7 +18,18 @@ pipeline {
             steps {
                 echo "📥 Installing npm dependencies..."
                 bat '''
-                "C:\\Program Files\\nodejs\\npm.cmd" ci --cache %NPM_CONFIG_CACHE% --no-optional --registry=https://registry.npmjs.org/
+                echo Fixing NPM config and increasing timeout...
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-maxtimeout 120000
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
+                "C:\\Program Files\\nodejs\\npm.cmd" config set strict-ssl false
+                "C:\\Program Files\\nodejs\\npm.cmd" config set registry https://registry.npmmirror.com/
+
+                echo Cleaning workspace manually...
+                rmdir /S /Q node_modules 2>nul
+
+                echo Installing dependencies...
+                "C:\\Program Files\\nodejs\\npm.cmd" ci --cache %NPM_CONFIG_CACHE% --omit=optional
                 '''
             }
         }
@@ -51,7 +57,7 @@ pipeline {
 
         stage('Deploy with Docker Compose') {
             steps {
-                echo "🚀 Deploying application..."
+                echo "🚀 Deploying container..."
                 bat '''
                 docker-compose down
                 docker-compose up -d --build
@@ -62,7 +68,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 echo "💓 Performing health check..."
-                bat 'curl -s -o NUL http://localhost:3000 || exit 1'
+                bat 'powershell -Command "try { iwr http://localhost:3000 -UseBasicParsing } catch { exit 1 }"'
             }
         }
     }
