@@ -2,20 +2,13 @@ pipeline {
     agent any
 
     stages {
-        stage('Docker Test Pipeline') {
+        stage('Docker') {
             steps {
-                echo '🐳 Welcome to Docker Test Pipeline!'
+                echo '🐳 Docker Test Stage - Hello World!'
                 bat '''
-                echo ===== CHECKING SYSTEM =====
-                echo Running on: %COMPUTERNAME%
-                echo Current directory: %CD%
-                echo ===== CHECK DOCKER VERSION =====
-                docker --version
-                echo ===== CHECK IMAGES =====
-                docker images
-                echo ===== CHECK CONTAINERS =====
-                docker ps -a
-                echo ===== DOCKER TEST DONE =====
+                echo ===============================
+                echo 🚀 Hello World from Docker Pipeline!
+                echo ===============================
                 '''
             }
         }
@@ -23,10 +16,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Docker Test Pipeline completed successfully!'
+            echo '✅ Pipeline finished successfully!'
         }
         failure {
-            echo '❌ Docker Test Pipeline failed. Check logs!'
+            echo '❌ Pipeline failed. Check logs!'
         }
     }
 }
