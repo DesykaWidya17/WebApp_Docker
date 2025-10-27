@@ -1,34 +1,33 @@
 pipeline {
     agent any
+    tools {
+        nodejs "NodeJS_25"
+    }
 
     stages {
         stage('Checkout SCM') {
             steps {
-                echo "📦 Checking out source code..."
+                echo '📦 Checking out source code...'
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo "📥 Installing npm dependencies..."
+                echo '📥 Installing npm dependencies...'
                 bat '''
                     echo Fixing NPM config and increasing timeout...
                     "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
-                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
-                    echo Installing dependencies (using npm ci if available)...
-                    IF EXIST package-lock.json (
-                        "C:\\Program Files\\nodejs\\npm.cmd" ci
-                    ) ELSE (
-                        "C:\\Program Files\\nodejs\\npm.cmd" install
-                    )
+                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-mintimeout 20000
+                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-maxtimeout 120000
+                    "C:\\Program Files\\nodejs\\npm.cmd" install
                 '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo "🧪 Running tests..."
+                echo '🧪 Running tests...'
                 bat '''
                     set "CI=true"
                     "C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests
@@ -38,43 +37,43 @@ pipeline {
 
         stage('Build Application') {
             steps {
-                echo "🏗️ Building the app..."
+                echo '🏗️ Building application...'
                 bat '"C:\\Program Files\\nodejs\\npm.cmd" run build'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo "🐳 Building Docker image..."
-                bat 'docker build -t webapp_docker .'
+                echo '🐳 Building Docker image...'
+                bat 'docker build -t webapp-docker .'
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
-                echo "🚀 Deploying with Docker Compose..."
-                bat 'docker-compose up -d --build'
+                echo '🚀 Deploying application with Docker Compose...'
+                bat 'docker-compose up -d'
             }
         }
 
         stage('Health Check') {
             steps {
-                echo "🩺 Checking application health..."
-                bat 'curl http://localhost:3000 || exit 1'
+                echo '🔍 Checking app health...'
+                bat 'curl -f http://localhost:3000 || exit 1'
             }
         }
     }
 
     post {
-        always {
-            echo "🧹 Cleaning up workspace..."
-            deleteDir()
+        success {
+            echo '✅ Pipeline executed successfully!'
         }
         failure {
-            echo "❌ Pipeline failed! Check logs for details."
+            echo '❌ Pipeline failed! Check logs for details.'
         }
-        success {
-            echo "✅ Pipeline completed successfully!"
+        always {
+            echo '🧹 Cleaning up workspace...'
+            deleteDir()
         }
     }
 }
