@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        PATH = "C:\\Program Files\\nodejs;C:\\Program Files\\Docker\\Docker\\resources\\bin;%PATH%"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -15,82 +11,76 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
+                echo '📥 Installing dependencies...'
                 bat '''
-                    echo ===== CEK VERSI NODE DAN NPM =====
-                    node -v
-                    npm -v
-
-                    echo ===== INSTALL DEPENDENCIES =====
-                    npm cache clean --force
-                    npm install
-
-                    echo ===== CEK APAKAH REACT-SCRIPTS TERINSTAL =====
-                    npm list react-scripts || npm install react-scripts
+                echo ===== CEK VERSI NODE DAN NPM =====
+                node -v
+                npm -v
+                echo ===== INSTALL DEPENDENCIES =====
+                npm install
                 '''
             }
         }
 
         stage('Run Tests') {
             steps {
+                echo '🧪 Running tests...'
                 bat '''
-                    echo ===== RUNNING TESTS =====
-                    set CI=true
-                    if exist node_modules\\react-scripts (
-                        npx react-scripts test --passWithNoTests
-                    ) else (
-                        echo React-scripts not found, skipping tests
-                    )
+                echo ===== RUNNING TESTS =====
+                set CI=true
+                if exist node_modules\\react-scripts (
+                    npx react-scripts test --passWithNoTests
+                ) else (
+                    echo React-scripts not found, skipping tests
+                )
                 '''
             }
         }
 
         stage('Build Application') {
             steps {
+                echo '🏗️ Building application...'
                 bat '''
-                    echo ===== BUILDING PROJECT =====
-                    npx react-scripts build
+                echo ===== BUILDING PROJECT =====
+                npx react-scripts build
                 '''
             }
         }
 
         stage('Build Docker Image') {
+            when {
+                expression { fileExists('Dockerfile') }
+            }
             steps {
-                bat '''
-                    echo ===== BUILDING DOCKER IMAGE =====
-                    docker build -t webapp-docker:latest .
-                '''
+                echo '🐳 Building Docker image...'
+                bat 'docker build -t webapp_docker:latest .'
             }
         }
 
         stage('Deploy with Docker Compose') {
+            when {
+                expression { fileExists('docker-compose.yml') }
+            }
             steps {
-                bat '''
-                    echo ===== DEPLOYING APPLICATION =====
-                    docker compose down
-                    docker compose up -d
-                '''
+                echo '🚀 Deploying with Docker Compose...'
+                bat 'docker-compose up -d --build'
             }
         }
 
         stage('Health Check') {
             steps {
-                bat '''
-                    echo ===== CHECKING CONTAINER STATUS =====
-                    docker ps
-                '''
+                echo '🔍 Checking application health...'
+                bat 'curl http://localhost:3000 || exit 1'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build and Deploy succeeded!'
+            echo '✅ Pipeline completed successfully!'
         }
         failure {
             echo '❌ Pipeline failed! Check logs for details.'
-        }
-        always {
-            echo '🧹 Cleaning up workspace...'
             deleteDir()
         }
     }
