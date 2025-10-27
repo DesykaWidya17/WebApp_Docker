@@ -23,7 +23,7 @@ pipeline {
             steps {
                 echo "📥 Installing npm dependencies..."
                 bat '''
-                npm ci --cache %NPM_CONFIG_CACHE% --no-optional --registry=https://registry.npmjs.org/
+                "C:\\Program Files\\nodejs\\npm.cmd" ci --cache %NPM_CONFIG_CACHE% --no-optional --registry=https://registry.npmjs.org/
                 '''
             }
         }
@@ -31,14 +31,14 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo "🧪 Running tests..."
-                bat 'npm test -- --passWithNoTests'
+                bat '"C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests'
             }
         }
 
         stage('Build Application') {
             steps {
                 echo "🏗️ Building application..."
-                bat 'npm run build'
+                bat '"C:\\Program Files\\nodejs\\npm.cmd" run build'
             }
         }
 
@@ -76,7 +76,7 @@ pipeline {
         }
         always {
             echo "🧹 Cleaning up workspace..."
-            deleteDir() // menggantikan cleanWs()
+            deleteDir()
         }
     }
 }
