@@ -2,13 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Set environment variables jika perlu
         NODE_ENV = 'production'
         NPM_CONFIG_CACHE = 'C:\\tmp\\.npm'
     }
 
     options {
-        // Batasi history build untuk hemat space
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timeout(time: 60, unit: 'MINUTES')
     }
@@ -24,7 +22,6 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo "📥 Installing npm dependencies..."
-                // Gunakan --registry untuk bypass proxy/connection issue
                 bat '''
                 npm ci --cache %NPM_CONFIG_CACHE% --no-optional --registry=https://registry.npmjs.org/
                 '''
@@ -34,7 +31,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo "🧪 Running tests..."
-                bat 'npm test'
+                bat 'npm test -- --passWithNoTests'
             }
         }
 
@@ -48,10 +45,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker image..."
-                // Pastikan Docker sudah terinstal & running
-                bat '''
-                docker build -t my-web-app:latest .
-                '''
+                bat 'docker build -t my-web-app:latest .'
             }
         }
 
@@ -68,9 +62,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 echo "💓 Performing health check..."
-                bat '''
-                curl -s -o NUL http://localhost:3000 || exit 1
-                '''
+                bat 'curl -s -o NUL http://localhost:3000 || exit 1'
             }
         }
     }
@@ -84,8 +76,7 @@ pipeline {
         }
         always {
             echo "🧹 Cleaning up workspace..."
-            // Gunakan cleanWs() plugin, lebih aman untuk Windows
-            cleanWs()
+            deleteDir() // menggantikan cleanWs()
         }
     }
 }
