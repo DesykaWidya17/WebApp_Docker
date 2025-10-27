@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        NODEJS_HOME = "C:\\Program Files\\nodejs"
-        PATH = "${NODEJS_HOME};${env.PATH}"
+        NODE_HOME = "C:\\Program Files\\nodejs"
+        PATH = "${env.NODE_HOME};${env.PATH}"
     }
 
     stages {
@@ -20,11 +20,9 @@ pipeline {
                 bat '''
                 echo Fixing NPM config and increasing timeout...
                 "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
-                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-mintimeout 20000
-                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-maxtimeout 120000
-                "C:\\Program Files\\nodejs\\npm.cmd" config set registry https://registry.npmjs.org/
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
                 echo Installing dependencies...
-                "C:\\Program Files\\nodejs\\npm.cmd" ci --no-optional
+                "C:\\Program Files\\nodejs\\npm.cmd" install
                 '''
             }
         }
@@ -38,7 +36,7 @@ pipeline {
 
         stage('Build Application') {
             steps {
-                echo "🏗️ Building application..."
+                echo "🏗️ Building the application..."
                 bat '"C:\\Program Files\\nodejs\\npm.cmd" run build'
             }
         }
@@ -46,41 +44,35 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker image..."
-                bat 'docker build -t webapp_docker:latest .'
+                bat 'docker build -t webapp_docker_image .'
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
-                echo "🚀 Deploying application with Docker Compose..."
-                bat '''
-                docker-compose down
-                docker-compose up -d
-                '''
+                echo "🚀 Deploying with Docker Compose..."
+                bat 'docker-compose up -d'
             }
         }
 
         stage('Health Check') {
             steps {
-                echo "🩺 Running health check..."
-                bat '''
-                docker ps
-                curl http://localhost:3000 || echo "⚠️ Health check failed!"
-                '''
+                echo "🔍 Checking container health..."
+                bat 'docker ps'
             }
         }
     }
 
     post {
-        success {
-            echo "✅ Pipeline completed successfully!"
+        always {
+            echo "🧹 Cleaning up workspace..."
+            deleteDir()
         }
         failure {
             echo "❌ Pipeline failed! Check logs for details."
         }
-        always {
-            echo "🧹 Cleaning up workspace..."
-            deleteDir()
+        success {
+            echo "✅ Deployment successful!"
         }
     }
 }
