@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs 'NodeJS_18'  // sesuaikan dengan nama yang kamu beri di Jenkins
+    }
 
     stages {
         stage('Checkout') {
@@ -26,7 +29,6 @@ pipeline {
             steps {
                 echo '🧪 Running tests...'
                 bat '''
-                echo ===== RUNNING TESTS =====
                 set CI=true
                 if exist node_modules\\react-scripts (
                     npx react-scripts test --passWithNoTests
@@ -40,10 +42,7 @@ pipeline {
         stage('Build Application') {
             steps {
                 echo '🏗️ Building application...'
-                bat '''
-                echo ===== BUILDING PROJECT =====
-                npx react-scripts build
-                '''
+                bat 'npx react-scripts build'
             }
         }
 
