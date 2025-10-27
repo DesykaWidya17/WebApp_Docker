@@ -17,23 +17,16 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo "📥 Installing npm dependencies..."
-                bat '''
-                echo Fixing NPM config and increasing timeout...
-                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
-                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
-                echo Installing dependencies...
-                "C:\\Program Files\\nodejs\\npm.cmd" install
-                '''
+                // Use NODE_HOME env var and prefer npm ci for reproducible installs; fallback to install
+                bat 'echo Fixing NPM config and increasing timeout... && %NODE_HOME%\\npm.cmd config set fetch-retries 5 && %NODE_HOME%\\npm.cmd config set fetch-timeout 600000 && echo Installing dependencies (npm ci || npm install) && %NODE_HOME%\\npm.cmd ci || %NODE_HOME%\\npm.cmd install'
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo "🧪 Running tests..."
-                bat '''
-                echo Running tests in CI mode...
-                set CI=true && "C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests
-                '''
+                echo "🧪 Running tests (CI mode, non-interactive)..."
+                // Run CI test script (non-interactive). Fallback to default test invocation if missing.
+                bat 'set CI=true && %NODE_HOME%\\npm.cmd run test:ci || (set CI=true && %NODE_HOME%\\npm.cmd test -- --passWithNoTests)'
             }
         }
 
