@@ -14,28 +14,26 @@ pipeline {
             }
         }
 
-                stage('Install Dependencies') {
-                        steps {
-                                echo "📥 Installing npm dependencies..."
-                                bat '''
-                                echo Fixing NPM config and increasing timeout...
-                                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
-                                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
-                                echo Installing dependencies (using npm ci when possible)...
-                                if exist package-lock.json (
-                                    "C:\\Program Files\\nodejs\\npm.cmd" ci
-                                ) else (
-                                    "C:\\Program Files\\nodejs\\npm.cmd" install
-                                )
-                                '''
-                        }
-                }
+        stage('Install Dependencies') {
+            steps {
+                echo "📥 Installing npm dependencies..."
+                bat '''
+                echo Fixing NPM config and increasing timeout...
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
+                echo Installing dependencies...
+                "C:\\Program Files\\nodejs\\npm.cmd" install
+                '''
+            }
+        }
 
         stage('Run Tests') {
             steps {
-                echo "🧪 Running tests (CI mode, non-interactive)..."
-                // Use the CI test script to avoid interactive watch mode on the agent
-                bat '"C:\\Program Files\\nodejs\\npm.cmd" run test:ci || "C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests'
+                echo "🧪 Running tests..."
+                bat '''
+                echo Running tests in CI mode...
+                set CI=true && "C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests
+                '''
             }
         }
 
