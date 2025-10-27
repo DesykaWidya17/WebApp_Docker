@@ -2,61 +2,31 @@ pipeline {
     agent any
 
     stages {
-        stage('Test Environment') {
+        stage('Docker Test Pipeline') {
             steps {
-                echo '🔍 Checking environment...'
+                echo '🐳 Welcome to Docker Test Pipeline!'
                 bat '''
-                echo ===== SYSTEM INFO =====
+                echo ===== CHECKING SYSTEM =====
+                echo Running on: %COMPUTERNAME%
                 echo Current directory: %CD%
-                echo Jenkins running on: %COMPUTERNAME%
-                echo ===== GIT VERSION =====
-                git --version
-                echo ===== NODE & NPM CHECK =====
-                where node
-                where npm
-                node -v || echo Node.js not found
-                npm -v || echo npm not found
+                echo ===== CHECK DOCKER VERSION =====
+                docker --version
+                echo ===== CHECK IMAGES =====
+                docker images
+                echo ===== CHECK CONTAINERS =====
+                docker ps -a
+                echo ===== DOCKER TEST DONE =====
                 '''
-            }
-        }
-
-        stage('Dummy Build') {
-            steps {
-                echo '🏗️ Simulating build step...'
-                bat '''
-                echo ===== BUILD START =====
-                echo Building project simulation...
-                echo Done.
-                echo ===== BUILD END =====
-                '''
-            }
-        }
-
-        stage('Dummy Test') {
-            steps {
-                echo '🧪 Running sample test...'
-                bat '''
-                echo ===== START TEST =====
-                echo All tests passed successfully!
-                echo ===== END TEST =====
-                '''
-            }
-        }
-
-        stage('Deploy Simulation') {
-            steps {
-                echo '🚀 Simulating deploy...'
-                bat 'echo Deployment successful!'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Test pipeline ran successfully!'
+            echo '✅ Docker Test Pipeline completed successfully!'
         }
         failure {
-            echo '❌ Test pipeline failed. Check logs!'
+            echo '❌ Docker Test Pipeline failed. Check logs!'
         }
     }
 }
