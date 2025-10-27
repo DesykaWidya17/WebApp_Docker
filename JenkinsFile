@@ -1,10 +1,22 @@
 pipeline {
     agent any
+
     tools {
-        nodejs "NodeJS_25"
+        nodejs "NodeJS_25" // Sesuaikan dengan nama NodeJS installation di Jenkins
+    }
+
+    environment {
+        DOCKER_IMAGE = "webapp_docker_image"
+        DOCKER_COMPOSE_PATH = "docker-compose.yml"
     }
 
     stages {
+        stage('Declarative: Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Checkout SCM') {
             steps {
                 echo '📦 Checking out source code...'
@@ -17,10 +29,11 @@ pipeline {
                 echo '📥 Installing npm dependencies...'
                 bat '''
                     echo Fixing NPM config and increasing timeout...
-                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
-                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-mintimeout 20000
-                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-maxtimeout 120000
-                    "C:\\Program Files\\nodejs\\npm.cmd" install
+                    npm config set fetch-retries 5
+                    npm config set fetch-retry-factor 2
+                    npm config set fetch-timeout 120000
+                    npm config set fetch-retry-mintimeout 20000
+                    npm install
                 '''
             }
         }
@@ -30,36 +43,45 @@ pipeline {
                 echo '🧪 Running tests...'
                 bat '''
                     set "CI=true"
-                    "C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests
+                    npm test -- --passWithNoTests
                 '''
             }
         }
 
         stage('Build Application') {
             steps {
-                echo '🏗️ Building application...'
-                bat '"C:\\Program Files\\nodejs\\npm.cmd" run build'
+                echo '🏗️ Building React app...'
+                bat '''
+                    npm run build
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Building Docker image...'
-                bat 'docker build -t webapp-docker .'
+                bat '''
+                    docker build -t %DOCKER_IMAGE% .
+                '''
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
-                echo '🚀 Deploying application with Docker Compose...'
-                bat 'docker-compose up -d'
+                echo '🚀 Deploying with Docker Compose...'
+                bat '''
+                    docker compose down
+                    docker compose up -d
+                '''
             }
         }
 
         stage('Health Check') {
             steps {
-                echo '🔍 Checking app health...'
-                bat 'curl -f http://localhost:3000 || exit 1'
+                echo '🩺 Checking app health...'
+                bat '''
+                    curl -f http://localhost:3000 || exit 1
+                '''
             }
         }
     }
