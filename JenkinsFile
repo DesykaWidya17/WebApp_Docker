@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_HOME = "C:\\Program Files\\nodejs"
-        PATH = "${env.NODE_HOME};${env.PATH}"
-    }
-
     stages {
         stage('Checkout SCM') {
             steps {
@@ -17,22 +12,33 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo "📥 Installing npm dependencies..."
-                // Use NODE_HOME env var and prefer npm ci for reproducible installs; fallback to install
-                bat 'echo Fixing NPM config and increasing timeout... && %NODE_HOME%\\npm.cmd config set fetch-retries 5 && %NODE_HOME%\\npm.cmd config set fetch-timeout 600000 && echo Installing dependencies (npm ci || npm install) && %NODE_HOME%\\npm.cmd ci || %NODE_HOME%\\npm.cmd install'
+                bat '''
+                    echo Fixing NPM config and increasing timeout... 
+                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
+                    "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
+                    echo Installing dependencies with npm ci or npm install...
+                    IF EXIST package-lock.json (
+                        "C:\\Program Files\\nodejs\\npm.cmd" ci
+                    ) ELSE (
+                        "C:\\Program Files\\nodejs\\npm.cmd" install
+                    )
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo "🧪 Running tests (CI mode, non-interactive)..."
-                // Run CI test script (non-interactive). Fallback to default test invocation if missing.
-                bat 'set CI=true && %NODE_HOME%\\npm.cmd run test:ci || (set CI=true && %NODE_HOME%\\npm.cmd test -- --passWithNoTests)'
+                echo "🧪 Running tests..."
+                bat '''
+                    set "CI=true"
+                    "C:\\Program Files\\nodejs\\npm.cmd" test -- --passWithNoTests
+                '''
             }
         }
 
         stage('Build Application') {
             steps {
-                echo "🏗️ Building the application..."
+                echo "🏗️ Building the app..."
                 bat '"C:\\Program Files\\nodejs\\npm.cmd" run build'
             }
         }
@@ -40,21 +46,21 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker image..."
-                bat 'docker build -t webapp_docker_image .'
+                bat 'docker build -t webapp_docker .'
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
                 echo "🚀 Deploying with Docker Compose..."
-                bat 'docker-compose up -d'
+                bat 'docker-compose up -d --build'
             }
         }
 
         stage('Health Check') {
             steps {
-                echo "🔍 Checking container health..."
-                bat 'docker ps'
+                echo "🩺 Checking application health..."
+                bat 'curl http://localhost:3000 || exit 1'
             }
         }
     }
@@ -68,7 +74,7 @@ pipeline {
             echo "❌ Pipeline failed! Check logs for details."
         }
         success {
-            echo "✅ Deployment successful!"
+            echo "✅ Pipeline completed successfully!"
         }
     }
 }
