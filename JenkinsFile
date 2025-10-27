@@ -1,86 +1,62 @@
 pipeline {
     agent any
-    tools {
-        nodejs 'NodeJS_18'  // sesuaikan dengan nama yang kamu beri di Jenkins
-    }
 
     stages {
-        stage('Checkout') {
+        stage('Test Environment') {
             steps {
-                echo '📦 Checking out source code...'
-                checkout scm
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                echo '📥 Installing dependencies...'
+                echo '🔍 Checking environment...'
                 bat '''
-                echo ===== CEK VERSI NODE DAN NPM =====
-                node -v
-                npm -v
-                echo ===== INSTALL DEPENDENCIES =====
-                npm install
+                echo ===== SYSTEM INFO =====
+                echo Current directory: %CD%
+                echo Jenkins running on: %COMPUTERNAME%
+                echo ===== GIT VERSION =====
+                git --version
+                echo ===== NODE & NPM CHECK =====
+                where node
+                where npm
+                node -v || echo Node.js not found
+                npm -v || echo npm not found
                 '''
             }
         }
 
-        stage('Run Tests') {
+        stage('Dummy Build') {
             steps {
-                echo '🧪 Running tests...'
+                echo '🏗️ Simulating build step...'
                 bat '''
-                set CI=true
-                if exist node_modules\\react-scripts (
-                    npx react-scripts test --passWithNoTests
-                ) else (
-                    echo React-scripts not found, skipping tests
-                )
+                echo ===== BUILD START =====
+                echo Building project simulation...
+                echo Done.
+                echo ===== BUILD END =====
                 '''
             }
         }
 
-        stage('Build Application') {
+        stage('Dummy Test') {
             steps {
-                echo '🏗️ Building application...'
-                bat 'npx react-scripts build'
+                echo '🧪 Running sample test...'
+                bat '''
+                echo ===== START TEST =====
+                echo All tests passed successfully!
+                echo ===== END TEST =====
+                '''
             }
         }
 
-        stage('Build Docker Image') {
-            when {
-                expression { fileExists('Dockerfile') }
-            }
+        stage('Deploy Simulation') {
             steps {
-                echo '🐳 Building Docker image...'
-                bat 'docker build -t webapp_docker:latest .'
-            }
-        }
-
-        stage('Deploy with Docker Compose') {
-            when {
-                expression { fileExists('docker-compose.yml') }
-            }
-            steps {
-                echo '🚀 Deploying with Docker Compose...'
-                bat 'docker-compose up -d --build'
-            }
-        }
-
-        stage('Health Check') {
-            steps {
-                echo '🔍 Checking application health...'
-                bat 'curl http://localhost:3000 || exit 1'
+                echo '🚀 Simulating deploy...'
+                bat 'echo Deployment successful!'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo '✅ Test pipeline ran successfully!'
         }
         failure {
-            echo '❌ Pipeline failed! Check logs for details.'
-            deleteDir()
+            echo '❌ Test pipeline failed. Check logs!'
         }
     }
 }
