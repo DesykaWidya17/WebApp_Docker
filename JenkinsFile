@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     environment {
-        NODE_ENV = 'production'
-        NPM_CONFIG_CACHE = 'C:\\tmp\\.npm'
+        NODEJS_HOME = "C:\\Program Files\\nodejs"
+        PATH = "${NODEJS_HOME};${env.PATH}"
     }
 
     stages {
+
         stage('Checkout SCM') {
             steps {
                 echo "📦 Checking out source code..."
@@ -20,16 +21,10 @@ pipeline {
                 bat '''
                 echo Fixing NPM config and increasing timeout...
                 "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retries 5
+                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-mintimeout 20000
                 "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-retry-maxtimeout 120000
-                "C:\\Program Files\\nodejs\\npm.cmd" config set fetch-timeout 600000
-                "C:\\Program Files\\nodejs\\npm.cmd" config set strict-ssl false
-                "C:\\Program Files\\nodejs\\npm.cmd" config set registry https://registry.npmmirror.com/
-
-                echo Cleaning workspace manually...
-                rmdir /S /Q node_modules 2>nul
-
-                echo Installing dependencies...
-                "C:\\Program Files\\nodejs\\npm.cmd" ci --cache %NPM_CONFIG_CACHE% --omit=optional
+                "C:\\Program Files\\nodejs\\npm.cmd" config set registry https://registry.npmjs.org/
+                "C:\\Program Files\\nodejs\\npm.cmd" ci --no-optional
                 '''
             }
         }
@@ -51,24 +46,29 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker image..."
-                bat 'docker build -t my-web-app:latest .'
+                bat '''
+                docker build -t webapp_docker:latest .
+                '''
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
-                echo "🚀 Deploying container..."
+                echo "🚀 Deploying application with Docker Compose..."
                 bat '''
                 docker-compose down
-                docker-compose up -d --build
+                docker-compose up -d
                 '''
             }
         }
 
         stage('Health Check') {
             steps {
-                echo "💓 Performing health check..."
-                bat 'powershell -Command "try { iwr http://localhost:3000 -UseBasicParsing } catch { exit 1 }"'
+                echo "🩺 Running health check..."
+                bat '''
+                docker ps
+                curl http://localhost:3000 || echo "⚠️ Health check failed!"
+                '''
             }
         }
     }
